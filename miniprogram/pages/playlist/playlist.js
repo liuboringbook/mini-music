@@ -65,7 +65,7 @@ Page({
    * 用户点击右上角分享
    */
   onShareAppMessage: function() {
-
+     
   },
   _getPlayList(){
     wx.showLoading({
@@ -79,6 +79,7 @@ Page({
          count:MAX_LIMIT
        }
      }).then((res)=>{
+       console.log(res)
        this.setData({
          playlist:this.data.playlist.concat(res.result.data)
        })
