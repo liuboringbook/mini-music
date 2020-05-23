@@ -2,13 +2,16 @@
 let musiclist =[]
 //正在播放歌曲的index
 let nowPlayingIndex = 0
+const backgroundAudioManager = wx.getBackgroundAudioManager()
+
 Page({
 
   /**
    * 页面的初始数据
    */
   data: {
-    picUrl:''
+    picUrl:'',
+    isPlaying:false, //false表示不播放，true表示播放
   },
 
   /**
@@ -18,16 +21,37 @@ Page({
    console.log(options)
    nowPlayingIndex =options.index
    musiclist = wx.getStorageSync('musiclist')
-   this._loadMusicDetail()
+   this._loadMusicDetail(options.musicId)
   },
   
-  _loadMusicDetail(){
+  _loadMusicDetail(musicId){
+    backgroundAudioManager.stop()
      let music =musiclist[nowPlayingIndex]
      wx.setNavigationBarTitle({
        title:music.name
      })
      this.setData({
       picUrl:music.al.picUrl
+     })
+     wx.cloud.callFunction({
+       name:'music',
+       data:{
+         $url:'musicUrl',
+         musicId:musicId
+       }
+     }).then((res)=>{
+       console.log(res)
+       console.log(JSON.parse(res.result))
+       let result =JSON.parse(res.result)
+       backgroundAudioManager.src = result.data[0].url
+        backgroundAudioManager.title = music.name
+        backgroundAudioManager.coverImgUrl = music.al.picUrl
+        backgroundAudioManager.singer = music.ar[0].name
+        backgroundAudioManager.epname = music.al.name
+
+        this.setData({
+          isPlaying:true
+        })
      })
   },
   /**
@@ -77,5 +101,40 @@ Page({
    */
   onShareAppMessage: function () {
 
+  },
+  /**
+   * 切换播放状态 
+   */
+  togglePlaying(){
+    //正在播放
+    if(this.data.isPlaying){
+      backgroundAudioManager.pause()
+    }else{
+      backgroundAudioManager.play()
+    }
+    this.setData({
+      isPlaying:!this.data.isPlaying
+    })
+  },
+
+  /**
+   * 上一首
+   */
+  onPrev(){
+    nowPlayingIndex--
+    if(nowPlayingIndex<0){
+      nowPlayingIndex = musiclist.length-1
+    }
+    this._loadMusicDetail(musiclist[nowPlayingIndex].id)
+  },
+  /**
+   * 下一首
+   */
+  onNext(){
+    nowPlayingIndex++
+    if(nowPlayingIndex=== musiclist.length){
+      nowPlayingIndex =0
+    }
+    this._loadMusicDetail(musiclist[nowPlayingIndex].id)
   }
 })
